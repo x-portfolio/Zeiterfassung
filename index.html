@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#667eea">
     <meta name="description" content="Erfasse deine Arbeitszeit mit automatischer Pausenberechnung">
     <title>Arbeitszeiterfassung</title>
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="./manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
     <style>
@@ -698,7 +698,7 @@
         // Service Worker registrieren für PWA
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
+                navigator.serviceWorker.register('./service-worker.js')
                     .then(reg => console.log('Service Worker registriert'))
                     .catch(err => console.log('Service Worker Fehler:', err));
             });
