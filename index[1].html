@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#667eea">
+    <meta name="description" content="Erfasse deine Arbeitszeit mit automatischer Pausenberechnung">
+    <title>Arbeitszeiterfassung</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            color: #667eea;
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+
+        .week-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .summary-card {
+            background: #f7f9fc;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .summary-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .summary-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .summary-value.homeoffice {
+            color: #10b981;
+        }
+
+        .summary-value.buero {
+            color: #3b82f6;
+        }
+
+        .input-section {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .info-box {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #1e40af;
+        }
+
+        .calculated-time {
+            background: #f0fdf4;
+            border: 2px solid #10b981;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .calculated-label {
+            font-size: 12px;
+            color: #065f46;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .calculated-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #10b981;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-add {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-reset {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-nav {
+            background: #667eea;
+            color: white;
+            padding: 8px 15px;
+            font-size: 14px;
+            flex: 0;
+        }
+
+        .entries-list {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .entry {
+            background: #f7f9fc;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .entry-date {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .entry-details {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .entry-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .entry-badge.homeoffice {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .entry-badge.buero {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .btn-delete {
+            background: #fee2e2;
+            color: #991b1b;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .progress-bar {
+            margin-top: 15px;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .progress-track {
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+            transition: width 0.3s;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #9ca3af;
+        }
+
+        .month-selector {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Wochenübersicht -->
+        <div class="header">
+            <h1>⏰ Arbeitszeiterfassung</h1>
+            <p style="color: #666; margin-top: 5px;">Wochenziel: 41 Stunden (60% Homeoffice)</p>
+            
+            <div class="week-summary">
+                <div class="summary-card">
+                    <div class="summary-label">Homeoffice</div>
+                    <div class="summary-value homeoffice" id="homeofficeTotal">0h</div>
+                    <div class="summary-label" style="margin-top: 5px;">Ziel: 24.6h</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">Büro</div>
+                    <div class="summary-value buero" id="bueroTotal">0h</div>
+                    <div class="summary-label" style="margin-top: 5px;">Ziel: 16.4h</div>
+                </div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-label">
+                    <span>Wochenfortschritt</span>
+                    <span id="totalHours">0 / 41h</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monatsübersicht -->
+        <div class="header">
+            <h2>📅 Monatsübersicht</h2>
+            
+            <div class="month-selector">
+                <button class="btn-nav" onclick="changeMonth(-1)">◀</button>
+                <span id="currentMonth" style="font-weight: 600; font-size: 16px;"></span>
+                <button class="btn-nav" onclick="changeMonth(1)">▶</button>
+            </div>
+
+            <div class="week-summary">
+                <div class="summary-card">
+                    <div class="summary-label">Homeoffice</div>
+                    <div class="summary-value homeoffice" id="monthHomeofficeTotal">0h</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">Büro</div>
+                    <div class="summary-value buero" id="monthBueroTotal">0h</div>
+                </div>
+            </div>
+
+            <div class="summary-card" style="margin-top: 15px;">
+                <div class="summary-label">Gesamtstunden im Monat</div>
+                <div class="summary-value" style="color: #667eea;" id="monthTotalHours">0h</div>
+            </div>
+        </div>
+
+        <!-- Eingabebereich -->
+        <div class="input-section">
+            <h2>Neue Arbeitszeit erfassen</h2>
+            
+            <div class="info-box">
+                ℹ️ Pausen werden automatisch berechnet:<br>
+                • 6-9 Std: 30 Min Pause<br>
+                • Über 9 Std: 45 Min Pause
+            </div>
+
+            <div class="input-group">
+                <label for="date">Datum</label>
+                <input type="date" id="date">
+            </div>
+
+            <div class="input-group">
+                <label>Arbeitszeit</label>
+                <div class="input-row">
+                    <div>
+                        <label for="startTime" style="font-size: 12px; color: #666;">Von</label>
+                        <input type="time" id="startTime">
+                    </div>
+                    <div>
+                        <label for="endTime" style="font-size: 12px; color: #666;">Bis</label>
+                        <input type="time" id="endTime">
+                    </div>
+                </div>
+            </div>
+
+            <div class="calculated-time" id="calculatedTime" style="display: none;">
+                <div class="calculated-label">Netto Arbeitszeit (inkl. Pausen)</div>
+                <div class="calculated-value" id="nettoHours">0h</div>
+            </div>
+
+            <div class="input-group">
+                <label for="location">Arbeitsort</label>
+                <select id="location">
+                    <option value="homeoffice">🏠 Homeoffice</option>
+                    <option value="buero">🏢 Büro</option>
+                </select>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-add" onclick="addEntry()">Hinzufügen</button>
+                <button class="btn-reset" onclick="resetData()">Zurücksetzen</button>
+            </div>
+        </div>
+
+        <!-- Einträge Liste -->
+        <div class="entries-list">
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="switchTab('week')">Diese Woche</button>
+                <button class="tab-btn" onclick="switchTab('month')">Dieser Monat</button>
+            </div>
+            <div id="entriesList"></div>
+        </div>
+    </div>
+
+    <script>
+        let entries = JSON.parse(localStorage.getItem('workEntries')) || [];
+        let currentMonthOffset = 0;
+        let currentView = 'week';
+
+        // Heute als Standard setzen
+        document.getElementById('date').valueAsDate = new Date();
+
+        // Event Listener für automatische Berechnung
+        document.getElementById('startTime').addEventListener('change', calculateNettoTime);
+        document.getElementById('endTime').addEventListener('change', calculateNettoTime);
+
+        function calculateNettoTime() {
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+
+            if (!startTime || !endTime) {
+                document.getElementById('calculatedTime').style.display = 'none';
+                return;
+            }
+
+            const start = new Date(`2000-01-01T${startTime}`);
+            const end = new Date(`2000-01-01T${endTime}`);
+            
+            if (end <= start) {
+                document.getElementById('calculatedTime').style.display = 'none';
+                return;
+            }
+
+            const totalMinutes = (end - start) / (1000 * 60);
+            const totalHours = totalMinutes / 60;
+
+            // Gesetzliche Pausen nach deutschem Arbeitszeitgesetz
+            let pauseMinutes = 0;
+            if (totalHours > 6 && totalHours <= 9) {
+                pauseMinutes = 30;
+            } else if (totalHours > 9) {
+                pauseMinutes = 45;
+            }
+
+            const nettoMinutes = totalMinutes - pauseMinutes;
+            const nettoHours = nettoMinutes / 60;
+
+            document.getElementById('calculatedTime').style.display = 'block';
+            document.getElementById('nettoHours').textContent = nettoHours.toFixed(2) + 'h';
+            
+            if (pauseMinutes > 0) {
+                document.getElementById('nettoHours').textContent += ` (${pauseMinutes} Min Pause)`;
+            }
+
+            return nettoHours;
+        }
+
+        function addEntry() {
+            const date = document.getElementById('date').value;
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            const location = document.getElementById('location').value;
+
+            if (!date || !startTime || !endTime) {
+                alert('Bitte fülle alle Felder aus!');
+                return;
+            }
+
+            const nettoHours = calculateNettoTime();
+            if (!nettoHours || nettoHours <= 0) {
+                alert('Ungültige Zeitangaben!');
+                return;
+            }
+
+            const entry = {
+                id: Date.now(),
+                date: date,
+                startTime: startTime,
+                endTime: endTime,
+                hours: parseFloat(nettoHours.toFixed(2)),
+                location: location
+            };
+
+            entries.push(entry);
+            saveEntries();
+            renderEntries();
+            updateSummary();
+            updateMonthSummary();
+
+            // Formular zurücksetzen
+            document.getElementById('startTime').value = '';
+            document.getElementById('endTime').value = '';
+            document.getElementById('calculatedTime').style.display = 'none';
+        }
+
+        function deleteEntry(id) {
+            if (confirm('Eintrag wirklich löschen?')) {
+                entries = entries.filter(e => e.id !== id);
+                saveEntries();
+                renderEntries();
+                updateSummary();
+                updateMonthSummary();
+            }
+        }
+
+        function resetData() {
+            if (confirm('Alle Daten wirklich löschen? Dies kann nicht rückgängig gemacht werden!')) {
+                entries = [];
+                saveEntries();
+                renderEntries();
+                updateSummary();
+                updateMonthSummary();
+            }
+        }
+
+        function saveEntries() {
+            localStorage.setItem('workEntries', JSON.stringify(entries));
+        }
+
+        function getWeekNumber(date) {
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+        }
+
+        function getCurrentWeek() {
+            const now = new Date();
+            return {
+                year: now.getFullYear(),
+                week: getWeekNumber(now)
+            };
+        }
+
+        function isCurrentWeek(dateString) {
+            const date = new Date(dateString);
+            const current = getCurrentWeek();
+            return date.getFullYear() === current.year && getWeekNumber(date) === current.week;
+        }
+
+        function getCurrentMonthEntries(offset = 0) {
+            const now = new Date();
+            const targetDate = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+            const year = targetDate.getFullYear();
+            const month = targetDate.getMonth();
+
+            return entries.filter(entry => {
+                const date = new Date(entry.date);
+                return date.getFullYear() === year && date.getMonth() === month;
+            });
+        }
+
+        function changeMonth(direction) {
+            currentMonthOffset += direction;
+            updateMonthSummary();
+            if (currentView === 'month') {
+                renderEntries();
+            }
+        }
+
+        function switchTab(view) {
+            currentView = view;
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            renderEntries();
+        }
+
+        function renderEntries() {
+            const list = document.getElementById('entriesList');
+            
+            let filteredEntries;
+            if (currentView === 'week') {
+                filteredEntries = entries.filter(e => isCurrentWeek(e.date));
+            } else {
+                filteredEntries = getCurrentMonthEntries(currentMonthOffset);
+            }
+
+            if (filteredEntries.length === 0) {
+                list.innerHTML = `<div class="empty-state">Noch keine Einträge für ${currentView === 'week' ? 'diese Woche' : 'diesen Monat'}</div>`;
+                return;
+            }
+
+            const sorted = [...filteredEntries].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            list.innerHTML = sorted.map(entry => {
+                const date = new Date(entry.date);
+                const formattedDate = date.toLocaleDateString('de-DE', { 
+                    weekday: 'short', 
+                    day: '2-digit', 
+                    month: '2-digit',
+                    year: '2-digit'
+                });
+
+                return `
+                    <div class="entry">
+                        <div class="entry-header">
+                            <div class="entry-date">${formattedDate}</div>
+                            <button class="btn-delete" onclick="deleteEntry(${entry.id})">🗑️</button>
+                        </div>
+                        <div class="entry-details">
+                            <span class="entry-badge ${entry.location}">${entry.location === 'homeoffice' ? '🏠 Homeoffice' : '🏢 Büro'}</span><br>
+                            ⏰ ${entry.startTime} - ${entry.endTime}<br>
+                            ✅ Netto: <strong>${entry.hours}h</strong>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateSummary() {
+            const weekEntries = entries.filter(e => isCurrentWeek(e.date));
+            let homeofficeHours = 0;
+            let bueroHours = 0;
+
+            weekEntries.forEach(entry => {
+                if (entry.location === 'homeoffice') {
+                    homeofficeHours += entry.hours;
+                } else {
+                    bueroHours += entry.hours;
+                }
+            });
+
+            const totalHours = homeofficeHours + bueroHours;
+
+            document.getElementById('homeofficeTotal').textContent = homeofficeHours.toFixed(1) + 'h';
+            document.getElementById('bueroTotal').textContent = bueroHours.toFixed(1) + 'h';
+            document.getElementById('totalHours').textContent = totalHours.toFixed(1) + ' / 41h';
+            
+            const progress = (totalHours / 41) * 100;
+            document.getElementById('progressFill').style.width = Math.min(progress, 100) + '%';
+        }
+
+        function updateMonthSummary() {
+            const monthEntries = getCurrentMonthEntries(currentMonthOffset);
+            let homeofficeHours = 0;
+            let bueroHours = 0;
+
+            monthEntries.forEach(entry => {
+                if (entry.location === 'homeoffice') {
+                    homeofficeHours += entry.hours;
+                } else {
+                    bueroHours += entry.hours;
+                }
+            });
+
+            const totalHours = homeofficeHours + bueroHours;
+
+            document.getElementById('monthHomeofficeTotal').textContent = homeofficeHours.toFixed(1) + 'h';
+            document.getElementById('monthBueroTotal').textContent = bueroHours.toFixed(1) + 'h';
+            document.getElementById('monthTotalHours').textContent = totalHours.toFixed(1) + 'h';
+
+            // Monatsnamen anzeigen
+            const now = new Date();
+            const targetDate = new Date(now.getFullYear(), now.getMonth() + currentMonthOffset, 1);
+            const monthName = targetDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+            document.getElementById('currentMonth').textContent = monthName;
+        }
+
+        // Initial rendern
+        renderEntries();
+        updateSummary();
+        updateMonthSummary();
+
+        // Service Worker registrieren für PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(reg => console.log('Service Worker registriert'))
+                    .catch(err => console.log('Service Worker Fehler:', err));
+            });
+        }
+    </script>
+</body>
+</html>
