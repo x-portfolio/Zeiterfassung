@@ -193,6 +193,108 @@
             flex: 0;
         }
 
+        .btn-clock-in {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            font-size: 18px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-clock-out {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            font-size: 18px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-clock-in:disabled,
+        .btn-clock-out:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .clock-status {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .clock-status.active {
+            background: #d1fae5;
+            border-color: #10b981;
+        }
+
+        .clock-status-label {
+            font-size: 12px;
+            color: #92400e;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .clock-status.active .clock-status-label {
+            color: #065f46;
+        }
+
+        .clock-status-time {
+            font-size: 24px;
+            font-weight: bold;
+            color: #f59e0b;
+        }
+
+        .clock-status.active .clock-status-time {
+            color: #10b981;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: #f7f9fc;
+            padding: 5px;
+            border-radius: 12px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 12px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .mode-btn.active {
+            background: white;
+            color: #667eea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .manual-entry,
+        .clock-entry {
+            display: none;
+        }
+
+        .manual-entry.active,
+        .clock-entry.active {
+            display: block;
+        }
+
         .entries-list {
             background: white;
             border-radius: 20px;
@@ -315,6 +417,12 @@
             color: white;
             border-color: #667eea;
         }
+
+        .current-time {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -377,49 +485,84 @@
 
         <!-- Eingabebereich -->
         <div class="input-section">
-            <h2>Neue Arbeitszeit erfassen</h2>
+            <h2>Arbeitszeit erfassen</h2>
             
-            <div class="info-box">
-                ℹ️ Pausen werden automatisch berechnet:<br>
-                • 6-9 Std: 30 Min Pause<br>
-                • Über 9 Std: 45 Min Pause
+            <!-- Mode Selector -->
+            <div class="mode-selector">
+                <button class="mode-btn active" onclick="switchMode('clock')">🕐 Stempeluhr</button>
+                <button class="mode-btn" onclick="switchMode('manual')">✏️ Manuell</button>
             </div>
 
-            <div class="input-group">
-                <label for="date">Datum</label>
-                <input type="date" id="date">
-            </div>
+            <!-- Clock Mode -->
+            <div class="clock-entry active">
+                <div id="clockStatus" class="clock-status">
+                    <div class="clock-status-label">Nicht eingecheckt</div>
+                    <div class="clock-status-time" id="clockStatusTime">--:--</div>
+                    <div class="current-time" id="currentTime"></div>
+                </div>
 
-            <div class="input-group">
-                <label>Arbeitszeit</label>
-                <div class="input-row">
-                    <div>
-                        <label for="startTime" style="font-size: 12px; color: #666;">Von</label>
-                        <input type="time" id="startTime">
-                    </div>
-                    <div>
-                        <label for="endTime" style="font-size: 12px; color: #666;">Bis</label>
-                        <input type="time" id="endTime">
-                    </div>
+                <div class="input-group">
+                    <label for="clockLocation">Arbeitsort</label>
+                    <select id="clockLocation">
+                        <option value="homeoffice">🏠 Homeoffice</option>
+                        <option value="buero">🏢 Büro</option>
+                    </select>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-clock-in" id="btnClockIn" onclick="clockIn()">
+                        ▶️ Kommen
+                    </button>
+                    <button class="btn-clock-out" id="btnClockOut" onclick="clockOut()" disabled>
+                        ⏸️ Gehen
+                    </button>
                 </div>
             </div>
 
-            <div class="calculated-time" id="calculatedTime" style="display: none;">
-                <div class="calculated-label">Netto Arbeitszeit (inkl. Pausen)</div>
-                <div class="calculated-value" id="nettoHours">0h</div>
-            </div>
+            <!-- Manual Mode -->
+            <div class="manual-entry">
+                <div class="info-box">
+                    ℹ️ Pausen werden automatisch berechnet:<br>
+                    • 6-9 Std: 30 Min Pause<br>
+                    • Über 9 Std: 45 Min Pause
+                </div>
 
-            <div class="input-group">
-                <label for="location">Arbeitsort</label>
-                <select id="location">
-                    <option value="homeoffice">🏠 Homeoffice</option>
-                    <option value="buero">🏢 Büro</option>
-                </select>
-            </div>
+                <div class="input-group">
+                    <label for="date">Datum</label>
+                    <input type="date" id="date">
+                </div>
 
-            <div class="button-group">
-                <button class="btn-add" onclick="addEntry()">Hinzufügen</button>
-                <button class="btn-reset" onclick="resetData()">Zurücksetzen</button>
+                <div class="input-group">
+                    <label>Arbeitszeit</label>
+                    <div class="input-row">
+                        <div>
+                            <label for="startTime" style="font-size: 12px; color: #666;">Von</label>
+                            <input type="time" id="startTime">
+                        </div>
+                        <div>
+                            <label for="endTime" style="font-size: 12px; color: #666;">Bis</label>
+                            <input type="time" id="endTime">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="calculated-time" id="calculatedTime" style="display: none;">
+                    <div class="calculated-label">Netto Arbeitszeit (inkl. Pausen)</div>
+                    <div class="calculated-value" id="nettoHours">0h</div>
+                </div>
+
+                <div class="input-group">
+                    <label for="location">Arbeitsort</label>
+                    <select id="location">
+                        <option value="homeoffice">🏠 Homeoffice</option>
+                        <option value="buero">🏢 Büro</option>
+                    </select>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-add" onclick="addEntry()">Hinzufügen</button>
+                    <button class="btn-reset" onclick="resetData()">Zurücksetzen</button>
+                </div>
             </div>
         </div>
 
@@ -437,6 +580,8 @@
         let entries = JSON.parse(localStorage.getItem('workEntries')) || [];
         let currentMonthOffset = 0;
         let currentView = 'week';
+        let clockedInTime = localStorage.getItem('clockedInTime') || null;
+        let clockedInLocation = localStorage.getItem('clockedInLocation') || null;
 
         // Heute als Standard setzen
         document.getElementById('date').valueAsDate = new Date();
@@ -444,6 +589,118 @@
         // Event Listener für automatische Berechnung
         document.getElementById('startTime').addEventListener('change', calculateNettoTime);
         document.getElementById('endTime').addEventListener('change', calculateNettoTime);
+
+        // Uhrzeit aktualisieren
+        function updateCurrentTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const dateString = now.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+            document.getElementById('currentTime').textContent = `${dateString} - ${timeString}`;
+        }
+
+        // Clock Mode Functions
+        function clockIn() {
+            const now = new Date();
+            const location = document.getElementById('clockLocation').value;
+            
+            clockedInTime = now.toISOString();
+            clockedInLocation = location;
+            
+            localStorage.setItem('clockedInTime', clockedInTime);
+            localStorage.setItem('clockedInLocation', clockedInLocation);
+            
+            updateClockStatus();
+        }
+
+        function clockOut() {
+            if (!clockedInTime) return;
+            
+            const startTime = new Date(clockedInTime);
+            const endTime = new Date();
+            
+            const totalMinutes = (endTime - startTime) / (1000 * 60);
+            const totalHours = totalMinutes / 60;
+
+            // Gesetzliche Pausen
+            let pauseMinutes = 0;
+            if (totalHours > 6 && totalHours <= 9) {
+                pauseMinutes = 30;
+            } else if (totalHours > 9) {
+                pauseMinutes = 45;
+            }
+
+            const nettoMinutes = totalMinutes - pauseMinutes;
+            const nettoHours = nettoMinutes / 60;
+
+            if (nettoHours > 0) {
+                const entry = {
+                    id: Date.now(),
+                    date: startTime.toISOString().split('T')[0],
+                    startTime: startTime.toTimeString().substring(0, 5),
+                    endTime: endTime.toTimeString().substring(0, 5),
+                    hours: parseFloat(nettoHours.toFixed(2)),
+                    location: clockedInLocation
+                };
+
+                entries.push(entry);
+                saveEntries();
+                renderEntries();
+                updateSummary();
+                updateMonthSummary();
+            }
+
+            // Reset clock
+            clockedInTime = null;
+            clockedInLocation = null;
+            localStorage.removeItem('clockedInTime');
+            localStorage.removeItem('clockedInLocation');
+            
+            updateClockStatus();
+        }
+
+        function updateClockStatus() {
+            const statusDiv = document.getElementById('clockStatus');
+            const statusTime = document.getElementById('clockStatusTime');
+            const btnClockIn = document.getElementById('btnClockIn');
+            const btnClockOut = document.getElementById('btnClockOut');
+            
+            if (clockedInTime) {
+                const startTime = new Date(clockedInTime);
+                const timeString = startTime.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+                
+                statusDiv.classList.add('active');
+                statusDiv.querySelector('.clock-status-label').textContent = 'Eingecheckt seit';
+                statusTime.textContent = timeString;
+                
+                btnClockIn.disabled = true;
+                btnClockOut.disabled = false;
+            } else {
+                statusDiv.classList.remove('active');
+                statusDiv.querySelector('.clock-status-label').textContent = 'Nicht eingecheckt';
+                statusTime.textContent = '--:--';
+                
+                btnClockIn.disabled = false;
+                btnClockOut.disabled = true;
+            }
+        }
+
+        function switchMode(mode) {
+            const modeBtns = document.querySelectorAll('.mode-btn');
+            const clockEntry = document.querySelector('.clock-entry');
+            const manualEntry = document.querySelector('.manual-entry');
+            
+            modeBtns.forEach(btn => btn.classList.remove('active'));
+            
+            if (mode === 'clock') {
+                modeBtns[0].classList.add('active');
+                clockEntry.classList.add('active');
+                manualEntry.classList.remove('active');
+            } else {
+                modeBtns[1].classList.add('active');
+                manualEntry.classList.add('active');
+                clockEntry.classList.remove('active');
+            }
+        }
 
         function calculateNettoTime() {
             const startTime = document.getElementById('startTime').value;
@@ -694,6 +951,11 @@
         renderEntries();
         updateSummary();
         updateMonthSummary();
+        updateClockStatus();
+        updateCurrentTime();
+
+        // Uhrzeit jede Sekunde aktualisieren
+        setInterval(updateCurrentTime, 1000);
 
         // Service Worker registrieren für PWA
         if ('serviceWorker' in navigator) {
