@@ -1,7 +1,7 @@
 const CACHE_NAME = 'zeiterfassung-v1';
 const urlsToCache = [
-  '/index.html',
-  '/manifest.json'
+  './index.html',
+  './manifest.json'
 ];
 
 // Installation - Cache wichtige Dateien
