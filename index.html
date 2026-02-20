@@ -28,6 +28,20 @@
             margin: 0 auto;
         }
 
+        .version-badge {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #667eea;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+
         .header {
             background: white;
             border-radius: 20px;
@@ -464,9 +478,22 @@
             font-size: 14px;
             color: #92400e;
         }
+
+        .error-box {
+            background: #fee2e2;
+            border-left: 4px solid #ef4444;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #991b1b;
+        }
     </style>
 </head>
 <body>
+    <!-- Version Badge -->
+    <div class="version-badge">v1.0</div>
+
     <div class="container">
         <!-- Hauptanzeige: Noch benötigte Bürozeit -->
         <div class="header">
@@ -516,6 +543,10 @@
         <div class="input-section">
             <h2>🕐 Stempeluhr</h2>
             
+            <div class="info-box" style="font-size: 12px;">
+                ⏰ Arbeitszeit: 06:00 - 21:00 Uhr
+            </div>
+
             <div id="clockStatus" class="clock-status">
                 <div class="clock-status-label">Nicht eingecheckt</div>
                 <div class="clock-status-time" id="clockStatusTime">--:--</div>
@@ -629,6 +660,7 @@
                 <button class="modal-close" onclick="closeManualEntryModal()">✕</button>
             </div>
             <div class="warning-box">
+                ⏰ Arbeitszeit: 06:00 - 21:00 Uhr<br><br>
                 Pausen werden automatisch berechnet:<br>
                 • 6-9 Std: 30 Min Pause<br>
                 • Über 9 Std: 45 Min Pause
@@ -638,12 +670,12 @@
                 <input type="date" id="manualDate">
             </div>
             <div class="input-group">
-                <label for="manualStart">Von</label>
-                <input type="time" id="manualStart">
+                <label for="manualStart">Von (frühestens 06:00)</label>
+                <input type="time" id="manualStart" min="06:00" max="21:00">
             </div>
             <div class="input-group">
-                <label for="manualEnd">Bis</label>
-                <input type="time" id="manualEnd">
+                <label for="manualEnd">Bis (spätestens 21:00)</label>
+                <input type="time" id="manualEnd" min="06:00" max="21:00">
             </div>
             <div class="input-group">
                 <label for="manualLocation">Arbeitsort</label>
@@ -674,6 +706,27 @@
         document.getElementById('vacationStart').valueAsDate = new Date();
         document.getElementById('vacationEnd').valueAsDate = new Date();
         document.getElementById('holidayDate').valueAsDate = new Date();
+
+        // Zeit-Validierung
+        function isValidWorkingTime(hours, minutes) {
+            const time = hours + minutes / 60;
+            return time >= 6 && time <= 21;
+        }
+
+        function validateTimeRange(startTime, endTime) {
+            const [startHours, startMinutes] = startTime.split(':').map(Number);
+            const [endHours, endMinutes] = endTime.split(':').map(Number);
+
+            if (!isValidWorkingTime(startHours, startMinutes)) {
+                return 'Startzeit muss zwischen 06:00 und 21:00 Uhr liegen!';
+            }
+
+            if (!isValidWorkingTime(endHours, endMinutes)) {
+                return 'Endzeit muss zwischen 06:00 und 21:00 Uhr liegen!';
+            }
+
+            return null;
+        }
 
         // Hilfsfunktionen für Datumsberechnungen
         function getWorkingDaysInMonth(year, month) {
@@ -777,6 +830,15 @@
 
         function clockIn() {
             const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+
+            // Zeitvalidierung
+            if (!isValidWorkingTime(hours, minutes)) {
+                alert('Du kannst dich nur zwischen 06:00 und 21:00 Uhr einchecken!');
+                return;
+            }
+
             const location = document.getElementById('clockLocation').value;
             
             clockedInTime = now.toISOString();
@@ -795,6 +857,12 @@
             const startTime = new Date(clockedInTime);
             const endTime = new Date();
             
+            // Zeitvalidierung
+            if (!isValidWorkingTime(endTime.getHours(), endTime.getMinutes())) {
+                alert('Endzeit muss vor 21:00 Uhr liegen! Bitte nutze die Nachbuchung für spätere Zeiten.');
+                return;
+            }
+
             const totalMinutes = (endTime - startTime) / (1000 * 60);
             const totalHours = totalMinutes / 60;
 
@@ -933,6 +1001,13 @@
                 return;
             }
 
+            // Zeitvalidierung
+            const timeError = validateTimeRange(startTime, endTime);
+            if (timeError) {
+                alert(timeError);
+                return;
+            }
+
             const start = new Date(`${date}T${startTime}`);
             const end = new Date(`${date}T${endTime}`);
             
@@ -1005,7 +1080,7 @@
             const targetHours = calculateMonthlyTargetHours(currentYear, currentMonth);
             const officeTargetHours = targetHours * 0.4; // 40% im Büro
 
-            // Bereits geleistete Bürozeit (Netto)
+            // Bereits geleistete Bürozeit (Netto) - nur abgeschlossene Einträge
             const monthEntries = getMonthEntries(currentYear, currentMonth);
             let completedOfficeHours = 0;
             
@@ -1015,8 +1090,8 @@
                 }
             });
 
-            // Aktuelle Session berücksichtigen
-            let currentSessionGross = 0;
+            // Aktuelle Session berücksichtigen (falls im Büro eingecheckt)
+            let currentSessionNettoHours = 0;
             if (clockedInTime && clockedInLocation === 'buero') {
                 const start = new Date(clockedInTime);
                 const totalMinutes = (now - start) / (1000 * 60);
@@ -1025,34 +1100,30 @@
                 // Erwartete Pausen für aktuelle Session
                 const expectedBreakMinutes = calculateBreakMinutes(totalHours);
                 const nettoMinutes = totalMinutes - expectedBreakMinutes;
-                const nettoHours = nettoMinutes / 60;
-                
-                // Brutto-Zeit = was noch eingecheckt werden muss
-                // Wir rechnen mit der bereits eingerechneten Pause
-                currentSessionGross = totalHours; // Brutto-Zeit der aktuellen Session
+                currentSessionNettoHours = nettoMinutes / 60;
             }
 
+            // Gesamt bereits geleistete Netto-Bürozeit (inkl. laufender Session)
+            const totalCompletedOfficeHours = completedOfficeHours + currentSessionNettoHours;
+
             // Verbleibende Netto-Stunden im Büro
-            const remainingNettoHours = officeTargetHours - completedOfficeHours;
+            const remainingNettoHours = officeTargetHours - totalCompletedOfficeHours;
 
             // Brutto-Zeit berechnen (mit erwarteten Pausen)
-            // Annahme: Im Durchschnitt wird noch ein voller Tag gearbeitet
-            // Vereinfachung: Für verbleibende Zeit rechnen wir mit ca. 7% Pause (30-45 Min bei 7-9h)
             let remainingBruttoHours = remainingNettoHours;
             
             // Wenn noch mehr als 6h zu arbeiten sind, Pause einrechnen
             if (remainingNettoHours > 6) {
-                // Schätze Pause: 30 Min für 6-9h, 45 Min für >9h
                 const estimatedBreakHours = remainingNettoHours > 8.5 ? 0.75 : 0.5;
                 remainingBruttoHours = remainingNettoHours + estimatedBreakHours;
             }
 
             return {
                 target: officeTargetHours,
-                completed: completedOfficeHours,
+                completed: totalCompletedOfficeHours,
                 remainingNetto: remainingNettoHours,
                 remainingBrutto: remainingBruttoHours,
-                currentSession: currentSessionGross
+                currentSession: currentSessionNettoHours
             };
         }
 
@@ -1072,7 +1143,7 @@
                 
                 let info = `${result.completed.toFixed(1)}h von ${result.target.toFixed(1)}h erreicht`;
                 if (clockedInTime && clockedInLocation === 'buero') {
-                    info += ' (Session läuft)';
+                    info += ` (inkl. ${result.currentSession.toFixed(1)}h laufende Session)`;
                 }
                 subtitle.textContent = info;
             } else if (remaining < -0.1) {
@@ -1250,7 +1321,16 @@
         updateClockStatus();
         updateCurrentTime();
         updateAll();
+        
+        // Aktualisiere Zeit jede Sekunde
         setInterval(updateCurrentTime, 1000);
+        
+        // Aktualisiere Berechnungen alle 30 Sekunden (wichtig für laufende Sessions)
+        setInterval(() => {
+            if (clockedInTime) {
+                updateRemainingOfficeTimeDisplay();
+            }
+        }, 30000);
 
         // Service Worker
         if ('serviceWorker' in navigator) {
